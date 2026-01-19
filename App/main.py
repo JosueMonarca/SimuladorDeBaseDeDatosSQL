@@ -5,24 +5,35 @@ class DataBase:
         # Usamos un diccionario: {'nombre_tabla': objeto_tabla}
         self.tables = {}
 
-    def add_table(self, name):
+    def add_table(self, name: str) -> bool:
         # Aplicando OPERADOR TERNARIO para validar existencia
         if name in self.tables:
-            print(f"La tabla '{name}' ya existe.")
+            return False
         else:
             self.tables[name] = Table(name)
+            return True
 
-    def add_column(self, table_name, col_name):
+    def add_column(self, table_name, col_name) -> bool:
         # Usamos el diccionario para acceso directo (más rápido que index)
         if table_name in self.tables:
             self.tables[table_name].add_column(col_name)
+            return True
         else:
-            print("Error: La tabla no existe.")
+            return False
 
-    def show_all_tables(self):
+    def all_tables(self):
         # Usamos slicing [:] para mostrar una copia de los nombres si quisiéramos
         nombres = list(self.tables.keys())
-        print(f"Tablas actuales: {nombres[:]}") 
+        tables = f"Tablas actuales: {nombres[:]}"
         for t in self.tables.values():
-            print(t.to_str())
-
+            tables += "\n" + t.to_str()
+        return tables
+    
+    def add_record(self, table_name: str, list_of_attributes: list) ->bool:
+        if self.exist_table(table_name):
+            if self.tables[table_name].add_record(list_of_attributes):
+                return True
+        return False
+    
+    def exist_table(self, table_name: str) -> bool:
+        return table_name in self.tables
