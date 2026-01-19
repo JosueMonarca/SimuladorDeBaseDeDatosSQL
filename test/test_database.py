@@ -5,8 +5,8 @@ import os
 # Asegurar que Python encuentre la carpeta App
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from App.main import DataBase
-from App.table import Table
+from app.database import DataBase
+from app.table import Table
 
 class TestDBMS(unittest.TestCase):
 
