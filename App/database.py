@@ -13,7 +13,7 @@ class DataBase:
             self.tables[name] = Table(name)
             return True
 
-    def add_column(self, table_name, col_name) -> bool:
+    def add_column(self, table_name: str, col_name: str) -> bool:
         # Usamos el diccionario para acceso directo (más rápido que index)
         if table_name in self.tables:
             self.tables[table_name].add_column(col_name)
