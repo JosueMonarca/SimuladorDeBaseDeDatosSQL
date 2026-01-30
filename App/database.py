@@ -37,3 +37,6 @@ class DataBase:
     
     def exist_table(self, table_name: str) -> bool:
         return table_name in self.tables
+    
+    def to_dict(self) :
+        pass
