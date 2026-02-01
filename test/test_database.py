@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.main import DataBase
+from app.database import DataBase
 from app.table import Table
 
 class TestDBMS(unittest.TestCase):

@@ -2,3 +2,8 @@ __pycahe__/
 *.pyc
 *.pyo
 *__init__.py
+*.vscode/
+*.json
+.env
+.venv/
+venv/*
