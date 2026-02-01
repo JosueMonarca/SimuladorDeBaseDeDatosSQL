@@ -37,9 +37,19 @@ Test/
 
 ## Uso
 
-Para ejecutar el simulador, utiliza el siguiente comando:
+Para ejecutar el simulador, utilize el siguiente comando:
 ```bash
-python -m Test/TestMain.py
+python -m app/main.py
+```
+
+## Tests
+
+Si quiere solo ejecutar los tests utilize el siguiente comando:
+```bash
+python -m test/test_database.py
+```
+```bash
+python -m test/test_persistence_manager.py
 ```
 
 ## Contribuciones
