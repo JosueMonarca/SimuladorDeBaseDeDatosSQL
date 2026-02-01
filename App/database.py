@@ -38,5 +38,21 @@ class DataBase:
     def exist_table(self, table_name: str) -> bool:
         return table_name in self.tables
     
-    def to_dict(self) :
-        pass
+    @classmethod
+    def from_dict(cls, data_dict: dict) -> DataBase:
+        db = cls()
+        
+        for table_name, table_data in data_dict.items():
+            db.add_table(table_name)
+            for col_name in table_data["columns"]:
+                db.add_column(table_name, col_name)
+            for record in table_data["records"]:
+                db.add_record(table_name, record)
+        
+        return db
+    
+    def to_dict(self) -> dict:
+        data_dict = {}
+        for table_name, table in self.tables.items():
+            data_dict[table_name] = table.to_dict()
+        return data_dict
