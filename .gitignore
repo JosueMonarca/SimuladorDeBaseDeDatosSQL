@@ -4,3 +4,6 @@ __pycahe__/
 *__init__.py
 *.vscode/
 *.json
+.env
+.venv/
+venv/*
