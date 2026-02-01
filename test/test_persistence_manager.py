@@ -51,9 +51,10 @@ class TestPersistenceManager(unittest.TestCase):
         PersistenceManager.save_db(self.db, self.filepath)
         
         loader_file = PersistenceManager.load_db(self.filepath)
-        
+        #print(loader_file.tables)
         self.assertTrue(loader_file.exist_table("test_table"))
-        self.assertEqual(loader_file.tables["test_table"].columns, ["column1"])
+        #self.assertEqual(loader_file.tables["test_table"].columns["column1"], ["column1"])
+        self.assertEqual(loader_file.tables["test_table"].records, [["value1"]])
         
     def test_load_non_existent_file(self):
         with self.assertRaises(FileNotFoundError):

@@ -14,7 +14,9 @@ class PersistenceManager:
 
     @staticmethod
     def load_db( filepath: str) -> DataBase:
-        return DataBase.from_dict(json.load(open (filepath, "r")))
+        with open (filepath, "r") as f:
+            data_dict = json.load(f)
+            return DataBase.from_dict(data_dict)
 
     @staticmethod
     def delete_db(filepath: str) -> None:
