@@ -1,4 +1,4 @@
-from app.table import Table
+from app.controller.table import Table
 
 class DataBase:
     def __init__(self):
@@ -6,7 +6,6 @@ class DataBase:
         self.tables = {}
 
     def add_table(self, name: str) -> bool:
-        # Aplicando OPERADOR TERNARIO para validar existencia
         if name in self.tables:
             return False
         else:
