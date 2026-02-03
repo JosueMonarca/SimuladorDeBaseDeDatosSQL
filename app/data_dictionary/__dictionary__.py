@@ -1,7 +1,17 @@
 from dataclasses import dataclass
 
 @dataclass
-class metadata:
-    col_name: str
+class metadata_column:
+    name: str
     unique: bool = False
-    type : type = str 
+    col_type : type = str 
+    
+@dataclass
+class metadata_table:
+    name: str
+    columns: list[metadata_column]
+    
+@dataclass
+class metadata_database:
+    name: str
+    tables: list[metadata_table]
