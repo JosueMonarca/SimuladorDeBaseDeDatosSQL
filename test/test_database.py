@@ -16,11 +16,11 @@ class TestDBMS(unittest.TestCase):
         tabla = Table("test")
         tabla.add_column("ID")
         tabla.add_column("ID")
-        self.assertEqual(len(tabla.metadata), 1)
+        self.assertEqual(len(tabla.metadata.columns), 1)
 
     def test_record_validation_type(self):
         tabla = Table("empleados")
-        tabla.add_column("Edad", type=int)
+        tabla.add_column("Edad", col_type=int)
         resultado = tabla.add_record(["Veinte"]) 
         self.assertFalse(resultado)
 
