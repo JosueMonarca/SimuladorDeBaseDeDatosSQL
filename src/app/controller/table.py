@@ -33,8 +33,13 @@ class Table:
         return True
     
     def to_dict(self) -> dict:
+        columns_data = []
+        for col in self.metadata.columns:
+            col_type_str = "int" if col.col_type == int else "str"
+            columns_data.append({"name": col.name, "type": col_type_str})
+            
         return {
-            "columns": [col.name for col in self.metadata.columns],
+            "columns": columns_data,
             "records": self.records
         }
 
