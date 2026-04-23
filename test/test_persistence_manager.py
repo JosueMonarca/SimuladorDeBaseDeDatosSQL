@@ -6,8 +6,8 @@ import json
 # Asegurar que Python encuentre la carpeta App
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.storage_manager.PersistenceManager import PersistenceManager
-from app.controller.database import DataBase
+from src.app.storage_manager.PersistenceManager import PersistenceManager
+from src.app.controller.database import DataBase
 
 class TestPersistenceManager(unittest.TestCase):
     

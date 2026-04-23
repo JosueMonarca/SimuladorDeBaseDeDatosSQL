@@ -1,5 +1,5 @@
-from app.data_dictionary.__dictionary__ import metadata_column
-from app.data_dictionary.__dictionary__ import metadata_table
+from src.app.data_dictionary.__dictionary__ import metadata_column
+from src.app.data_dictionary.__dictionary__ import metadata_table
 class Table:
     
     def __init__(self, name: str) -> None:
@@ -9,7 +9,7 @@ class Table:
 
     def add_column(self, col_name: str, unique = False, col_type = None) -> None:
         if col_name not in [col.name for col in self.metadata.columns]:
-            self.metadata.columns.append(metadata_column(col_name, unique, col_type = col_type if col_type else str))
+            self.metadata.columns.append(metadata_column(col_name, unique, col_type = col_type))
             for row in self.records:
                 row.append(None)
                 

@@ -1,6 +1,6 @@
 import json
 import os
-from app.controller.database import DataBase
+from src.app.controller.database import DataBase
 
 class PersistenceManager:
     

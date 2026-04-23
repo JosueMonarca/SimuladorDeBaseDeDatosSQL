@@ -4,13 +4,16 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.controller.database import DataBase
-from app.controller.table import Table
+from src.app.controller.database import DataBase
+from src.app.controller.table import Table
 
 class TestDBMS(unittest.TestCase):
 
     def setUp(self):
-        self.db = DataBase()
+        self.db = DataBase("test_db")
+    
+    def tearDown(self):
+        DataBase.remove_instance("test_db")
     
     def test_add_column_unique_name(self):
         tabla = Table("test")
@@ -38,7 +41,7 @@ class TestDBMS(unittest.TestCase):
 
     def test_add_record_to_db(self):
         self.db.add_table("stock")
-        self.db.add_column("stock", "Cantidad")
+        self.db.add_column("stock", "Cantidad", int)
         resultado = self.db.add_record("stock", [50])
         self.assertTrue(resultado)
 
