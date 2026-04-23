@@ -1,17 +1,13 @@
 from src.app.controller.database import DataBase
-from src.app.query_processor.USE import get_current_db
 from src.app.query_processor.WHERE import apply_where
 
-def delete(db_name: str, table_name: str, where_clause: dict | None = None) -> tuple[bool, str]:
-    if db_name:
-        db = DataBase.get_instance(db_name)
-    else:
-        db = get_current_db()
-        if db is None:
-            return False, "No database selected"
+
+def delete(db_name: str, table_name: str, where_clause: dict | None = None) -> int:
+    db = DataBase.get_instance(db_name)
     
     if not db.exist_table(table_name):
-        return False, f"Table '{table_name}' does not exist"
+        from src.app.exceptions import TableNotFoundError
+        raise TableNotFoundError(f"Table '{table_name}' does not exist")
     
     table = db.tables[table_name]
     
@@ -27,4 +23,4 @@ def delete(db_name: str, table_name: str, where_clause: dict | None = None) -> t
     else:
         table.records = []
     
-    return True, f"{deleted_count} record(s) deleted"
+    return deleted_count

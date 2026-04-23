@@ -5,34 +5,26 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.app.controller.database import DataBase
-from src.app.query_processor.USE import use, get_current_db, set_current_db
-from src.app.query_processor.CREATE_DATABASE import create_database
+from src.app.service.dbms_service import DBMS
 
 
 class TestUse(unittest.TestCase):
 
     def setUp(self):
+        self.dbms = DBMS()
         self.db_name = "test_db_use"
-        create_database(self.db_name)
+        self.dbms.create_database(self.db_name)
 
     def tearDown(self):
-        DataBase.remove_instance(self.db_name)
+        DataBase._instances = {}
 
     def test_use_existing_database(self):
-        success, msg = use(self.db_name)
-        self.assertTrue(success)
-        self.assertIn("Using database", msg)
-        self.assertIsNotNone(get_current_db())
+        db = self.dbms.use_database(self.db_name)
+        self.assertIsNotNone(self.dbms.current_db)
 
     def test_use_nonexistent_database(self):
-        success, msg = use("nonexistent_db")
-        self.assertFalse(success)
-        self.assertIn("does not exist", msg)
-
-    def test_set_current_db(self):
-        db = DataBase.get_instance(self.db_name)
-        set_current_db(db)
-        self.assertEqual(get_current_db(), db)
+        with self.assertRaises(Exception):
+            self.dbms.use_database("nonexistent_db")
 
 
 if __name__ == '__main__':

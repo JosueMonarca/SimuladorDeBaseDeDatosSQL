@@ -5,114 +5,78 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.app.controller.database import DataBase
-from src.app.query_processor.CREATE_TABLE import create_table
-from src.app.query_processor.INSERT import insert
-from src.app.query_processor.SELECT import select
-from src.app.query_processor.UPDATE import update
-from src.app.query_processor.DELETE import delete
+from src.app.service.dbms_service import DBMS
+from src.app import exceptions
 
 
-class TestInsert(unittest.TestCase):
+class TestCRUDOperations(unittest.TestCase):
 
     def setUp(self):
-        self.db_name = "test_db_insert"
-        DataBase.get_instance(self.db_name)
-        create_table(self.db_name, "users", ["id INT", "name TEXT"])
+        self.dbms = DBMS()
+        self.db_name = "test_db_crud"
+        self.dbms.create_database(self.db_name)
+        self.dbms.use_database(self.db_name)
+        self.dbms.create_table("users", ["id INT", "name TEXT"])
 
     def tearDown(self):
-        DataBase.remove_instance(self.db_name)
+        DataBase._instances = {}
 
     def test_insert_single_record(self):
-        success, msg = insert(self.db_name, "users", ["1", "Juan"])
-        self.assertTrue(success)
-        db = DataBase.get_instance(self.db_name)
-        self.assertEqual(len(db.tables["users"].records), 1)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.assertEqual(len(self.dbms.current_db.tables["users"].records), 1) # type: ignore
 
     def test_insert_multiple_records(self):
-        insert(self.db_name, "users", ["1", "Juan"])
-        insert(self.db_name, "users", ["2", "Maria"])
-        db = DataBase.get_instance(self.db_name)
-        self.assertEqual(len(db.tables["users"].records), 2)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        self.assertEqual(len(self.dbms.current_db.tables["users"].records), 2) # type: ignore
 
     def test_insert_into_nonexistent_table(self):
-        success, msg = insert(self.db_name, "nonexistent", ["1", "Juan"])
-        self.assertFalse(success)
-
-
-class TestSelect(unittest.TestCase):
-
-    def setUp(self):
-        self.db_name = "test_db_select"
-        DataBase.get_instance(self.db_name)
-        create_table(self.db_name, "users", ["id INT", "name TEXT"])
-        insert(self.db_name, "users", ["1", "Juan"])
-        insert(self.db_name, "users", ["2", "Maria"])
-
-    def tearDown(self):
-        DataBase.remove_instance(self.db_name)
+        with self.assertRaises(exceptions.TableNotFoundError):
+            self.dbms.insert("nonexistent", ["1", "Juan"])
 
     def test_select_all(self):
-        success, result = select(self.db_name, "users")
-        self.assertTrue(success)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        result = self.dbms.select("users")
         self.assertEqual(len(result), 2)
 
     def test_select_with_where(self):
-        success, result = select(self.db_name, "users", where_clause={"column": "id", "operator": "=", "value": 1})
-        self.assertTrue(success)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        result = self.dbms.select("users", where_clause={"column": "id", "operator": "=", "value": 1})
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][0], 1)
 
     def test_select_nonexistent_table(self):
-        success, msg = select(self.db_name, "nonexistent")
-        self.assertFalse(success)
-
-
-class TestUpdate(unittest.TestCase):
-
-    def setUp(self):
-        self.db_name = "test_db_update"
-        DataBase.get_instance(self.db_name)
-        create_table(self.db_name, "users", ["id INT", "name TEXT"])
-        insert(self.db_name, "users", ["1", "Juan"])
-        insert(self.db_name, "users", ["2", "Maria"])
-
-    def tearDown(self):
-        DataBase.remove_instance(self.db_name)
+        with self.assertRaises(exceptions.TableNotFoundError):
+            self.dbms.select("nonexistent")
 
     def test_update_with_where(self):
-        success, msg = update(self.db_name, "users", {"column": "name", "value": "Pedro"}, {"column": "id", "operator": "=", "value": 1})
-        self.assertTrue(success)
-        db = DataBase.get_instance(self.db_name)
-        self.assertEqual(db.tables["users"].records[0][1], "Pedro")
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        count = self.dbms.update("users", {"column": "name", "value": "Pedro"}, {"column": "id", "operator": "=", "value": 1})
+        self.assertGreater(count, 0)
+        self.assertEqual(self.dbms.current_db.tables["users"].records[0][1], "Pedro") # type: ignore
 
     def test_update_without_where(self):
-        success, msg = update(self.db_name, "users", {"column": "name", "value": "Unknown"}, None)
-        self.assertTrue(success)
-
-
-class TestDelete(unittest.TestCase):
-
-    def setUp(self):
-        self.db_name = "test_db_delete"
-        DataBase.get_instance(self.db_name)
-        create_table(self.db_name, "users", ["id INT", "name TEXT"])
-        insert(self.db_name, "users", ["1", "Juan"])
-        insert(self.db_name, "users", ["2", "Maria"])
-
-    def tearDown(self):
-        DataBase.remove_instance(self.db_name)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        count = self.dbms.update("users", {"column": "name", "value": "Unknown"}, None)
+        self.assertEqual(count, 2)
 
     def test_delete_with_where(self):
-        success, msg = delete(self.db_name, "users", {"column": "id", "operator": "=", "value": 1})
-        self.assertTrue(success)
-        db = DataBase.get_instance(self.db_name)
-        self.assertEqual(len(db.tables["users"].records), 1)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        count = self.dbms.delete("users", {"column": "id", "operator": "=", "value": 1})
+        self.assertGreater(count, 0)
+        self.assertEqual(len(self.dbms.current_db.tables["users"].records), 1) # type: ignore
 
     def test_delete_all(self):
-        success, msg = delete(self.db_name, "users", None)
-        self.assertTrue(success)
-        db = DataBase.get_instance(self.db_name)
-        self.assertEqual(len(db.tables["users"].records), 0)
+        self.dbms.insert("users", ["1", "Juan"])
+        self.dbms.insert("users", ["2", "Maria"])
+        count = self.dbms.delete("users", None)
+        self.assertEqual(count, 2)
+        self.assertEqual(len(self.dbms.current_db.tables["users"].records), 0) # type: ignore
 
 
 if __name__ == '__main__':

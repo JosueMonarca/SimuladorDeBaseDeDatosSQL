@@ -7,9 +7,9 @@ class Table:
         self.records = [] 
         self.metadata = metadata_table(name, [])
 
-    def add_column(self, col_name: str, unique = False, col_type = None) -> None:
+    def add_column(self, col_name: str, unique: bool = False, col_type: type | None = None) -> None:
         if col_name not in [col.name for col in self.metadata.columns]:
-            self.metadata.columns.append(metadata_column(col_name, unique, col_type = col_type))
+            self.metadata.columns.append(metadata_column(col_name, unique, col_type = col_type)) # type: ignore
             for row in self.records:
                 row.append(None)
                 

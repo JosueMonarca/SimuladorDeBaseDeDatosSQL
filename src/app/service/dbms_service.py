@@ -1,31 +1,96 @@
 from src.app.controller.database import DataBase
-from src.app.controller.table import Table
 from src.app.transaction_manager.TransactionManager import TransactionManager
 from src.app.storage_manager.PersistenceManager import PersistenceManager
-
-from src.app.query_processor.CREATE_DATABASE import create_database
-from src.app.query_processor.CREATE_TABLE import create_table
-from src.app.query_processor.DROP_DATABASE import drop_database
-from src.app.query_processor.DROP_TABLE import drop_table
-from src.app.query_processor.USE import use, get_current_db
-from src.app.query_processor.INSERT import insert
-from src.app.query_processor.SELECT import select
-from src.app.query_processor.UPDATE import update
-from src.app.query_processor.DELETE import delete
-from src.app.query_processor.ALTER_TABLE import alter_table
-
-from src.app.transaction_manager.BEGIN import begin
-from src.app.transaction_manager.COMMIT import commit
-from src.app.transaction_manager.ROLLBACK import rollback
-from src.app.transaction_manager.IN_TRANSACTION import is_in_transaction
+from src.app import exceptions
 
 
 class DBMS:
     def __init__(self):
-        self.databases = {}
         self.current_db = None
         self.transaction_manager = None
     
+    def create_database(self, name: str) -> None:
+        create_database(name)
+    
+    def drop_database(self, name: str) -> None:
+        drop_database(name)
+    
+    def use_database(self, name: str) -> None:
+        self.current_db = use(name)
+        self.transaction_manager = TransactionManager(self.current_db)
+    
+    def create_table(self, table_name: str, columns: list[str]) -> None:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        create_table(self.current_db.name, table_name, columns)
+    
+    def drop_table(self, table_name: str) -> None:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        drop_table(self.current_db.name, table_name)
+    
+    def insert(self, table_name: str, values: list) -> None:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        insert(self.current_db.name, table_name, values)
+    
+    def select(self, table_name: str, columns: list | None = None, where_clause: dict | None = None) -> list:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        return select(self.current_db.name, table_name, columns, where_clause)
+    
+    def update(self, table_name: str, set_clause: dict, where_clause: dict | None = None) -> int:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        return update(self.current_db.name, table_name, set_clause, where_clause)
+    
+    def delete(self, table_name: str, where_clause: dict | None = None) -> int:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        return delete(self.current_db.name, table_name, where_clause)
+    
+    def alter_table(self, table_name: str, action: str, column: str | None = None) -> None:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        alter_table(self.current_db.name, table_name, action, column)
+    
+    def begin_transaction(self) -> None:
+        if not self.transaction_manager:
+            raise exceptions.DatabaseError("No database selected")
+        begin(self.transaction_manager)
+    
+    def commit_transaction(self) -> None:
+        if not self.transaction_manager:
+            raise exceptions.DatabaseError("No database selected")
+        commit(self.transaction_manager)
+    
+    def rollback_transaction(self) -> None:
+        if not self.transaction_manager:
+            raise exceptions.DatabaseError("No database selected")
+        rollback(self.transaction_manager)
+    
+    def is_in_transaction(self) -> bool:
+        if not self.transaction_manager:
+            return False
+        return is_in_transaction(self.transaction_manager)
+    
+    def list_databases(self) -> list:
+        return DataBase.list_databases()
+    
+    def list_tables(self) -> list:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        return list(self.current_db.tables.keys())
+    
+    def save_db(self, filepath: str) -> None:
+        if not self.current_db:
+            raise exceptions.DatabaseError("No database selected")
+        PersistenceManager.save_db(self.current_db, filepath)
+    
+    def load_db(self, filepath: str) -> None:
+        db = PersistenceManager.load_db(filepath)
+        DataBase.get_instance(db.name)
+
     def execute(self, query: str) -> tuple[bool, str]:
         query = query.strip()
         parts = query.upper().split()
@@ -38,19 +103,18 @@ class DBMS:
         try:
             if command == "CREATE_DATABASE" or command == "CREATE_DB":
                 name = query.split()[1].strip(";")
-                return create_database(name)
+                self.create_database(name)
+                return True, f"Database '{name}' created successfully"
             
             elif command == "DROP_DATABASE" or command == "DROP_DB":
                 name = query.split()[1].strip(";")
-                return drop_database(name)
+                self.drop_database(name)
+                return True, f"Database '{name}' dropped successfully"
             
             elif command == "USE":
                 name = query.split()[1].strip(";")
-                success, msg = use(name)
-                if success:
-                    self.current_db = get_current_db()
-                    self.transaction_manager = TransactionManager(self.current_db)
-                return success, msg
+                self.use_database(name)
+                return True, f"Using database '{name}'"
             
             elif command == "CREATE_TABLE" or command == "CREATE":
                 return self._handle_create_table(query)
@@ -62,7 +126,8 @@ class DBMS:
                 else:
                     table_name = parts[1].strip(";")
                 if self.current_db:
-                    return drop_table(self.current_db.name, table_name)
+                    self.drop_table(table_name)
+                    return True, f"Table '{table_name}' dropped successfully"
                 return False, "No database selected"
             
             elif command == "INSERT":
@@ -82,30 +147,35 @@ class DBMS:
             
             elif command == "BEGIN" or command == "START_TRANSACTION":
                 if self.transaction_manager:
-                    return begin(self.transaction_manager)
+                    self.begin_transaction()
+                    return True, "Transaction started"
                 return False, "No database selected"
             
             elif command == "COMMIT":
                 if self.transaction_manager:
-                    return commit(self.transaction_manager)
+                    self.commit_transaction()
+                    return True, "Transaction committed"
                 return False, "No database selected"
             
             elif command == "ROLLBACK":
                 if self.transaction_manager:
-                    return rollback(self.transaction_manager)
+                    self.rollback_transaction()
+                    return True, "Transaction rolled back"
                 return False, "No database selected"
             
             elif command == "SHOW_DATABASES":
-                return True, DataBase.list_databases()
+                return True, str(self.list_databases())
             
             elif command == "SHOW_TABLES":
                 if self.current_db:
-                    return True, list(self.current_db.tables.keys())
+                    return True, str(self.list_tables())
                 return False, "No database selected"
             
             else:
                 return False, f"Unknown command: {command}"
                 
+        except exceptions.DatabaseError as e:
+            return False, f"Error: {str(e)}"
         except Exception as e:
             return False, f"Error: {str(e)}"
     
@@ -119,7 +189,8 @@ class DBMS:
             table_name = match.group(1)
             columns_str = match.group(2)
             columns = [col.strip() for col in columns_str.split(",")]
-            return create_table(self.current_db.name, table_name, columns)
+            self.create_table(table_name, columns)
+            return True, f"Table '{table_name}' created successfully"
         return False, "Invalid CREATE TABLE syntax"
     
     def _handle_insert(self, query: str) -> tuple[bool, str]:
@@ -132,7 +203,8 @@ class DBMS:
             table_name = match.group(1)
             values_str = match.group(2)
             values = [v.strip().strip("'\"") for v in values_str.split(",")]
-            return insert(self.current_db.name, table_name, values)
+            self.insert(table_name, values)
+            return True, "Record inserted successfully"
         return False, "Invalid INSERT syntax"
     
     def _handle_select(self, query: str) -> tuple[bool, str]:
@@ -149,7 +221,8 @@ class DBMS:
             columns = None if cols_str == "*" else [c.strip() for c in cols_str.split(",")]
             where_clause = self._parse_where(where_str) if where_str else None
             
-            return select(self.current_db.name, table_name, columns, where_clause)
+            result = self.select(table_name, columns, where_clause)
+            return True, str(result)
         return False, "Invalid SELECT syntax"
     
     def _handle_update(self, query: str) -> tuple[bool, str]:
@@ -167,7 +240,8 @@ class DBMS:
             set_clause = {"column": col_name, "value": value}
             where_clause = self._parse_where(where_str) if where_str else None
             
-            return update(self.current_db.name, table_name, set_clause, where_clause)
+            count = self.update(table_name, set_clause, where_clause)
+            return True, f"{count} record(s) updated"
         return False, "Invalid UPDATE syntax"
     
     def _handle_delete(self, query: str) -> tuple[bool, str]:
@@ -182,7 +256,8 @@ class DBMS:
             
             where_clause = self._parse_where(where_str) if where_str else None
             
-            return delete(self.current_db.name, table_name, where_clause)
+            count = self.delete(table_name, where_clause)
+            return True, f"{count} record(s) deleted"
         return False, "Invalid DELETE syntax"
     
     def _handle_alter_table(self, query: str) -> tuple[bool, str]:
@@ -196,7 +271,8 @@ class DBMS:
             action = match.group(2).upper()
             column = match.group(3)
             
-            return alter_table(self.current_db.name, table_name, action, column)
+            self.alter_table(table_name, action, column)
+            return True, f"Column '{column}' {action.lower()}ed from table '{table_name}'"
         return False, "Invalid ALTER TABLE syntax"
     
     def _parse_where(self, where_str: str) -> dict:
@@ -207,46 +283,20 @@ class DBMS:
             op = match.group(2)
             val = match.group(3).strip().strip("'\"")
             return {"column": col, "operator": op, "value": val}
-        return None
-    
-    def save_db(self, filepath: str):
-        if self.current_db:
-            PersistenceManager.save_db(self.current_db, filepath)
-            return True
-        return False
-    
-    def load_db(self, filepath: str):
-        db = PersistenceManager.load_db(filepath)
-        DataBase.get_instance(db.name)
-        return db
+        raise exceptions.DatabaseError("Invalid WHERE clause")
 
 
-def main():
-    dbms = DBMS()
-    
-    print("=== Simulador de Base de Datos ===")
-    print("Comandos: CREATE_DATABASE, USE, CREATE_TABLE, INSERT, SELECT, UPDATE, DELETE, etc.")
-    print("Escribe 'exit' para salir\n")
-    
-    while True:
-        try:
-            query = input("db> ").strip()
-            if query.lower() in ("exit", "quit"):
-                break
-            
-            if query:
-                success, result = dbms.execute(query)
-                if success:
-                    print(result)
-                else:
-                    print(f"Error: {result}")
-                    
-        except KeyboardInterrupt:
-            print("\nSaliendo...")
-            break
-        except Exception as e:
-            print(f"Error: {e}")
-
-
-if __name__ == "__main__":
-    main()
+from src.app.query_processor.CREATE_DATABASE import create_database
+from src.app.query_processor.CREATE_TABLE import create_table
+from src.app.query_processor.DROP_DATABASE import drop_database
+from src.app.query_processor.DROP_TABLE import drop_table
+from src.app.query_processor.USE import use
+from src.app.query_processor.INSERT import insert
+from src.app.query_processor.SELECT import select
+from src.app.query_processor.UPDATE import update
+from src.app.query_processor.DELETE import delete
+from src.app.query_processor.ALTER_TABLE import alter_table
+from src.app.transaction_manager.BEGIN import begin
+from src.app.transaction_manager.COMMIT import commit
+from src.app.transaction_manager.ROLLBACK import rollback
+from src.app.transaction_manager.IN_TRANSACTION import is_in_transaction
