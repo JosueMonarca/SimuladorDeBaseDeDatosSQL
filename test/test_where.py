@@ -8,7 +8,6 @@ from src.app.controller.database import DataBase
 from src.app.query_processor.CREATE_TABLE import create_table
 from src.app.query_processor.INSERT import insert
 from src.app.query_processor.WHERE import apply_where
-from src.app.data_dictionary.__dictionary__ import metadata_column
 
 
 class TestWhere(unittest.TestCase):

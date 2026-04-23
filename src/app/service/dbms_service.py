@@ -89,7 +89,10 @@ class DBMS:
     
     def load_db(self, filepath: str) -> None:
         db = PersistenceManager.load_db(filepath)
-        DataBase.get_instance(db.name)
+        loaded_db = DataBase.get_instance(db.name)
+        loaded_db.tables = db.tables
+        self.current_db = loaded_db
+        self.transaction_manager = TransactionManager(self.current_db)
 
     def execute(self, query: str) -> tuple[bool, str]:
         query = query.strip()

@@ -8,17 +8,33 @@ def insert(db_name: str, table_name: str, values: list) -> None:
         from src.app.exceptions import TableNotFoundError
         raise TableNotFoundError(f"Table '{table_name}' does not exist")
     
+    table = db.tables[table_name]
+    col_types = [col.col_type for col in table.metadata.columns]
+    
     parsed_values = []
-    for val in values:
-        try:
-            if val.isdigit():
+    for i, val in enumerate(values):
+        col_type = col_types[i] if i < len(col_types) else None
+        
+        if col_type == int:
+            try:
                 parsed_values.append(int(val))
-            elif val.replace(".", "", 1).isdigit():
-                parsed_values.append(float(val))
-            else:
+            except:
                 parsed_values.append(val)
-        except:
-            parsed_values.append(val)
+        elif col_type == float:
+            try:
+                parsed_values.append(float(val))
+            except:
+                parsed_values.append(val)
+        else:
+            try:
+                if val.isdigit():
+                    parsed_values.append(int(val))
+                elif val.replace(".", "", 1).replace("-", "", 1).isdigit():
+                    parsed_values.append(float(val))
+                else:
+                    parsed_values.append(val)
+            except:
+                parsed_values.append(val)
     
     if not db.add_record(table_name, parsed_values):
         from src.app.exceptions import RecordValidationError

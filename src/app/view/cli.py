@@ -1,5 +1,3 @@
-from typing import Optional
-
 from src.app.service.dbms_service import DBMS
 from src.app import exceptions
 
@@ -50,7 +48,7 @@ class CLI:
             elif command == "DELETE":
                 return self._handle_delete(query)
             
-            elif command == "ALTER_TABLE":
+            elif command == "ALTER_TABLE" or command == "ALTER":
                 return self._handle_alter_table(query)
             
             elif command == "BEGIN" or command == "START_TRANSACTION":
@@ -70,6 +68,24 @@ class CLI:
             
             elif command == "SHOW_TABLES":
                 return str(self.dbms.list_tables())
+            
+            elif command == "SAVE_DB":
+                parts = query.split()
+                if len(parts) >= 2:
+                    filepath = parts[1].strip(";")
+                    self.dbms.save_db(filepath)
+                    return f"Database saved to '{filepath}'"
+                return "Usage: SAVE_DB "
+            
+            elif command == "LOAD_DB":
+                parts = query.split()
+                if len(parts) >= 2:
+                    filepath = parts[1].strip(";")
+                    self.dbms.load_db(filepath)
+                    if self.dbms.current_db:
+                        self.dbms.use_database(self.dbms.current_db.name)
+                    return f"Database loaded from '{filepath}'"
+                return "Usage: LOAD_DB "
             
             else:
                 return f"Unknown command: {command}"
@@ -163,25 +179,53 @@ class CLI:
             column = match.group(3)
             
             self.dbms.alter_table(table_name, action, column)
-            if action == "ADD":
-                return f"Column '{column}' added to table '{table_name}'"
-            else:
-                return f"Column '{column}' dropped from table '{table_name}'"
+            return f"Column '{column}' added to table '{table_name}'"
         return "Invalid ALTER TABLE syntax"
     
-    def _parse_where(self, where_str: str) -> Optional[dict]:
+    def _parse_where(self, where_str: str) -> dict:
         import re
-        match = re.match(r'(\w+)\s*(=|!=|<>|>|<|>=|<=)\s*(.+)', where_str.strip(), re.IGNORECASE)
+        # Manejar >= y <= primero
+        match = re.match(r'(\w+)\s*>=\s*(.+)', where_str.strip(), re.IGNORECASE)
         if match:
             col = match.group(1)
-            op = match.group(2)
+            val = match.group(2).strip().strip("'\"")
+            return {"column": col, "operator": ">=", "value": val}
+        
+        match = re.match(r'(\w+)\s*<=\s*(.+)', where_str.strip(), re.IGNORECASE)
+        if match:
+            col = match.group(1)
+            val = match.group(2).strip().strip("'\"")
+            return {"column": col, "operator": "<=", "value": val}
+        
+        match = re.match(r'(\w+)\s*(!=|<>)\s*(.+)', where_str.strip(), re.IGNORECASE)
+        if match:
+            col = match.group(1)
             val = match.group(3).strip().strip("'\"")
-            return {"column": col, "operator": op, "value": val}
+            return {"column": col, "operator": match.group(2), "value": val}
+        
+        match = re.match(r'(\w+)\s*>\s*(.+)', where_str.strip(), re.IGNORECASE)
+        if match:
+            col = match.group(1)
+            val = match.group(2).strip().strip("'\"")
+            return {"column": col, "operator": ">", "value": val}
+        
+        match = re.match(r'(\w+)\s*<\s*(.+)', where_str.strip(), re.IGNORECASE)
+        if match:
+            col = match.group(1)
+            val = match.group(2).strip().strip("'\"")
+            return {"column": col, "operator": "<", "value": val}
+        
+        match = re.match(r'(\w+)\s*=\s*(.+)', where_str.strip(), re.IGNORECASE)
+        if match:
+            col = match.group(1)
+            val = match.group(2).strip().strip("'\"")
+            return {"column": col, "operator": "=", "value": val}
+        
         return None
     
     def run(self):
         print("=== Simulador de Base de Datos ===")
-        print("Comandos: CREATE_DATABASE, USE, CREATE_TABLE, INSERT, SELECT, UPDATE, DELETE, etc.")
+        print("Comandos: CREATE_DATABASE, USE, CREATE_TABLE, INSERT, SELECT, etc.")
         print("Escribe 'exit' para salir\n")
         
         while True:
